@@ -460,7 +460,37 @@
                             </Grid.RowDefinitions>
 
                             <StackPanel Orientation="Horizontal">
-                                <TextBlock Text="&#xE71D;" Style="{StaticResource IconGlyphStyle}" />
+                                <!-- 自绘 Dock 图标：三个应用块（中间略大，呼应放大效果）坐在一条横杆上 -->
+                                <Grid Width="16"
+                                      Height="16"
+                                      Margin="0,0,8,0"
+                                      VerticalAlignment="Center">
+                                    <Border Height="2.5"
+                                            CornerRadius="1.2"
+                                            VerticalAlignment="Bottom"
+                                            Margin="1,0,1,1.2"
+                                            Background="{StaticResource AccentBrush}" />
+                                    <StackPanel Orientation="Horizontal"
+                                                HorizontalAlignment="Center"
+                                                VerticalAlignment="Bottom"
+                                                Margin="0,0,0,4.5">
+                                        <Border Width="3.5"
+                                                Height="3.5"
+                                                CornerRadius="1"
+                                                Opacity="0.8"
+                                                Background="{StaticResource AccentBrush}" />
+                                        <Border Width="4.5"
+                                                Height="4.5"
+                                                CornerRadius="1.2"
+                                                Margin="1.5,0"
+                                                Background="{StaticResource AccentBrush}" />
+                                        <Border Width="3.5"
+                                                Height="3.5"
+                                                CornerRadius="1"
+                                                Opacity="0.8"
+                                                Background="{StaticResource AccentBrush}" />
+                                    </StackPanel>
+                                </Grid>
                                 <TextBlock Text="Dock" Style="{StaticResource SectionTitleStyle}" />
                             </StackPanel>
 
