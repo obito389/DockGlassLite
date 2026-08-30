@@ -76,12 +76,12 @@ public sealed partial class MainWindow : Window
         // 液态玻璃：SetWindowCompositionAttribute + Acrylic 模糊，自定义深色染色
         // （系统背景材质 DWMSBT_TRANSIENTWINDOW 的色调跟随系统主题、偏浅，
         //   无法控制；此 API 从 Win10 1803 起稳定可用，可指定暗色 tint）
-        // GradientColor 为 ABGR：Alpha=80（50% 染色），颜色 #14181F
+        // GradientColor 为 ABGR：Alpha=8C（55% 染色），颜色 #161A26（深蓝紫，去灰）
         var accent = new AccentPolicy
         {
             AccentState = NativeMethods.AccentEnableAcrylicBlurBehind,
             AccentFlags = 0,
-            GradientColor = 0x801F1814,
+            GradientColor = 0x8C261A16,
             AnimationId = 0
         };
 
@@ -129,6 +129,30 @@ public sealed partial class MainWindow : Window
         var fallback = new SolidColorBrush(Color.FromRgb(0x10, 0x12, 0x17));
         Background = fallback;
         RootGrid.Background = fallback;
+    }
+
+    private void TitleBar_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+    {
+        if (e.ClickCount == 2 && ResizeMode == ResizeMode.CanResize)
+        {
+            WindowState = WindowState == WindowState.Maximized ? WindowState.Normal : WindowState.Maximized;
+            return;
+        }
+
+        if (e.ButtonState == MouseButtonState.Pressed)
+        {
+            DragMove();
+        }
+    }
+
+    private void MinimizeButton_Click(object sender, RoutedEventArgs e)
+    {
+        WindowState = WindowState.Minimized;
+    }
+
+    private void CloseButton_Click(object sender, RoutedEventArgs e)
+    {
+        Close(); // OnClosing 中拦截为隐藏
     }
 
     protected override void OnClosing(CancelEventArgs e)

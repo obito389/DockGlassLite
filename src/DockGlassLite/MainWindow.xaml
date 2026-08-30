@@ -2,28 +2,40 @@
 <Window x:Class="DockGlassLite.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:shell="clr-namespace:System.Windows.Shell;assembly=PresentationFramework"
         Title="DockGlass Lite"
         Width="560"
         Height="540"
         MinWidth="520"
         MinHeight="500"
         WindowStartupLocation="CenterScreen"
+        WindowStyle="None"
+        ResizeMode="CanResize"
         Background="Transparent"
         Icon="Assets/DockGlassLiteLogo.png"
         FontFamily="Segoe UI"
         TextOptions.TextFormattingMode="Display">
 
+    <!-- 自定义镀铬：去掉系统黑色标题栏，让整个窗口（含标题区）都是 Acrylic 玻璃 -->
+    <shell:WindowChrome.WindowChrome>
+        <shell:WindowChrome CaptionHeight="0"
+                            ResizeBorderThickness="6"
+                            GlassFrameThickness="0"
+                            CornerRadius="0"
+                            UseAeroCaptionButtons="False" />
+    </shell:WindowChrome.WindowChrome>
+
     <Window.Resources>
         <SolidColorBrush x:Key="AccentBrush" Color="#45A8FF" />
-        <SolidColorBrush x:Key="PanelBrush" Color="#21FFFFFF" />
-        <SolidColorBrush x:Key="PanelBorderBrush" Color="#38FFFFFF" />
+        <SolidColorBrush x:Key="PanelBrush" Color="#28283248" />
+        <SolidColorBrush x:Key="PanelBorderBrush" Color="#33FFFFFF" />
         <SolidColorBrush x:Key="MutedTextBrush" Color="#C9D2DE" />
 
         <Style x:Key="SectionPanelStyle" TargetType="{x:Type Border}">
             <Setter Property="Background" Value="{StaticResource PanelBrush}" />
             <Setter Property="BorderBrush" Value="{StaticResource PanelBorderBrush}" />
             <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="CornerRadius" Value="10" />
+            <Setter Property="CornerRadius" Value="14" />
             <Setter Property="Padding" Value="18" />
             <Setter Property="Margin" Value="0,0,0,14" />
         </Style>
@@ -144,6 +156,7 @@
             </Setter>
         </Style>
 
+        <!-- 玻璃按钮：圆角加大，hover 用 accent 淡染 -->
         <Style TargetType="{x:Type Button}">
             <Setter Property="Foreground" Value="#F2F6FB" />
             <Setter Property="Background" Value="#1FFFFFFF" />
@@ -161,7 +174,7 @@
                                 Background="{TemplateBinding Background}"
                                 BorderBrush="{TemplateBinding BorderBrush}"
                                 BorderThickness="{TemplateBinding BorderThickness}"
-                                CornerRadius="6">
+                                CornerRadius="9">
                             <ContentPresenter Margin="{TemplateBinding Padding}"
                                               HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
                                               VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
@@ -170,7 +183,7 @@
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
                                 <Setter TargetName="Root" Property="Background" Value="#3345A8FF" />
-                                <Setter TargetName="Root" Property="BorderBrush" Value="#6645A8FF" />
+                                <Setter TargetName="Root" Property="BorderBrush" Value="#8045A8FF" />
                             </Trigger>
                             <Trigger Property="IsPressed" Value="True">
                                 <Setter TargetName="Root" Property="Background" Value="#2645A8FF" />
@@ -185,16 +198,217 @@
             </Setter>
         </Style>
 
+        <!-- 标题栏按钮：无背景，hover 亮一点 -->
+        <Style x:Key="TitleBarButtonStyle" TargetType="{x:Type Button}">
+            <Setter Property="Width" Value="44" />
+            <Setter Property="Height" Value="40" />
+            <Setter Property="MinHeight" Value="0" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Focusable" Value="False" />
+            <Setter Property="Foreground" Value="#C9D2DE" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type Button}">
+                        <Border x:Name="Root" Background="Transparent">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Root" Property="Background" Value="#26FFFFFF" />
+                                <Setter Property="Foreground" Value="#FFFFFF" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="TitleBarCloseButtonStyle"
+               TargetType="{x:Type Button}"
+               BasedOn="{StaticResource TitleBarButtonStyle}">
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type Button}">
+                        <Border x:Name="Root" Background="Transparent">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Root" Property="Background" Value="#E81123" />
+                                <Setter Property="Foreground" Value="#FFFFFF" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- 玻璃滑块：细轨道 + accent 填充 + 圆形滑钮 -->
+        <Style TargetType="{x:Type Slider}">
+            <Setter Property="Height" Value="28" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type Slider}">
+                        <Grid VerticalAlignment="Center">
+                            <Border Height="4"
+                                    CornerRadius="2"
+                                    Background="#30FFFFFF"
+                                    VerticalAlignment="Center"
+                                    Margin="9,0" />
+                            <Track x:Name="PART_Track" VerticalAlignment="Center">
+                                <Track.DecreaseRepeatButton>
+                                    <RepeatButton Focusable="False"
+                                                  Command="{x:Static Slider.DecreaseLarge}"
+                                                  Height="4"
+                                                  VerticalAlignment="Center">
+                                        <RepeatButton.Template>
+                                            <ControlTemplate TargetType="{x:Type RepeatButton}">
+                                                <Border Height="4"
+                                                        CornerRadius="2"
+                                                        Background="{StaticResource AccentBrush}"
+                                                        Margin="9,0,0,0" />
+                                            </ControlTemplate>
+                                        </RepeatButton.Template>
+                                    </RepeatButton>
+                                </Track.DecreaseRepeatButton>
+                                <Track.Thumb>
+                                    <Thumb Width="18" Height="18">
+                                        <Thumb.Template>
+                                            <ControlTemplate TargetType="{x:Type Thumb}">
+                                                <Grid>
+                                                    <Ellipse Fill="#FAFCFF">
+                                                        <Ellipse.Effect>
+                                                            <DropShadowEffect BlurRadius="6"
+                                                                              ShadowDepth="1"
+                                                                              Opacity="0.5"
+                                                                              Color="Black" />
+                                                        </Ellipse.Effect>
+                                                    </Ellipse>
+                                                </Grid>
+                                            </ControlTemplate>
+                                        </Thumb.Template>
+                                    </Thumb>
+                                </Track.Thumb>
+                                <Track.IncreaseRepeatButton>
+                                    <RepeatButton Focusable="False" Command="{x:Static Slider.IncreaseLarge}">
+                                        <RepeatButton.Template>
+                                            <ControlTemplate TargetType="{x:Type RepeatButton}">
+                                                <Border Background="Transparent" Margin="0,0,9,0" />
+                                            </ControlTemplate>
+                                        </RepeatButton.Template>
+                                    </RepeatButton>
+                                </Track.IncreaseRepeatButton>
+                            </Track>
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- 玻璃勾选框：圆角方框 + accent 填充 + 白色对勾 -->
         <Style TargetType="{x:Type CheckBox}">
             <Setter Property="Foreground" Value="#DCE4EE" />
             <Setter Property="FontSize" Value="13" />
             <Setter Property="Margin" Value="0,8,0,0" />
             <Setter Property="VerticalContentAlignment" Value="Center" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type CheckBox}">
+                        <StackPanel Orientation="Horizontal">
+                            <Border x:Name="Box"
+                                    Width="20"
+                                    Height="20"
+                                    CornerRadius="6"
+                                    Background="#1FFFFFFF"
+                                    BorderBrush="#42FFFFFF"
+                                    BorderThickness="1">
+                                <Path x:Name="CheckMark"
+                                      Data="M 4.5,10.5 L 8.5,14.5 L 15.5,5.5"
+                                      Stroke="White"
+                                      StrokeThickness="2"
+                                      StrokeStartLineCap="Round"
+                                      StrokeEndLineCap="Round"
+                                      Stretch="None"
+                                      Visibility="Collapsed" />
+                            </Border>
+                            <ContentPresenter Margin="8,0,0,0"
+                                              VerticalAlignment="Center"
+                                              ContentSource="Content" />
+                        </StackPanel>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="Box" Property="Background" Value="{StaticResource AccentBrush}" />
+                                <Setter TargetName="Box" Property="BorderBrush" Value="{StaticResource AccentBrush}" />
+                                <Setter TargetName="CheckMark" Property="Visibility" Value="Visible" />
+                            </Trigger>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Box" Property="BorderBrush" Value="#8045A8FF" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
         </Style>
     </Window.Resources>
 
     <Grid x:Name="RootGrid" Background="Transparent">
-        <Grid Margin="28,24,28,22">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <!-- 自绘标题栏：与玻璃融为一体 -->
+        <Border x:Name="TitleBar"
+                Grid.Row="0"
+                Height="40"
+                Background="Transparent"
+                MouseLeftButtonDown="TitleBar_MouseLeftButtonDown">
+            <Grid>
+                <StackPanel Orientation="Horizontal"
+                            VerticalAlignment="Center"
+                            Margin="14,0,0,0">
+                    <Image Source="Assets/DockGlassLiteLogo.png"
+                           Width="18"
+                           Height="18"
+                           RenderOptions.BitmapScalingMode="HighQuality" />
+                    <TextBlock Text="DockGlass Lite"
+                               Foreground="#EAF0F8"
+                               FontSize="13"
+                               FontWeight="SemiBold"
+                               Margin="8,0,0,0"
+                               VerticalAlignment="Center" />
+                </StackPanel>
+                <StackPanel Orientation="Horizontal"
+                            HorizontalAlignment="Right"
+                            shell:WindowChrome.IsHitTestVisibleInChrome="True">
+                    <Button x:Name="MinimizeButton"
+                            Style="{StaticResource TitleBarButtonStyle}"
+                            ToolTip="最小化"
+                            Click="MinimizeButton_Click">
+                        <Path Data="M 0,0.5 L 10,0.5"
+                              Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
+                              StrokeThickness="1"
+                              Stretch="None" />
+                    </Button>
+                    <Button x:Name="CloseButton"
+                            Style="{StaticResource TitleBarCloseButtonStyle}"
+                            ToolTip="关闭"
+                            Click="CloseButton_Click">
+                        <Path Data="M 0.5,0.5 L 9.5,9.5 M 9.5,0.5 L 0.5,9.5"
+                              Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
+                              StrokeThickness="1"
+                              StrokeStartLineCap="Round"
+                              StrokeEndLineCap="Round"
+                              Stretch="None" />
+                    </Button>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <Grid Grid.Row="1" Margin="28,6,28,22">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="*" />
@@ -219,7 +433,7 @@
                 <Border Grid.Column="1"
                         Width="36"
                         Height="36"
-                        CornerRadius="8"
+                        CornerRadius="10"
                         Background="#1FFFFFFF"
                         BorderBrush="#38FFFFFF"
                         BorderThickness="1">
@@ -335,7 +549,7 @@
                     Background="#1445A8FF"
                     BorderBrush="#4645A8FF"
                     BorderThickness="1"
-                    CornerRadius="8"
+                    CornerRadius="10"
                     Padding="12,10"
                     Margin="0,14,0,0">
                 <TextBlock x:Name="StatusText"
