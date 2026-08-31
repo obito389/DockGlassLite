@@ -43,6 +43,10 @@ public sealed partial class DockWindow : Window
     private double _layoutIconSize;
     private bool _isInactive;
     private bool _isEditMode;
+    private readonly Dictionary<string, BitmapImage> _iconBitmapCache = new(StringComparer.OrdinalIgnoreCase);
+    private Button[] _dockButtons = [];
+    private Button[] _itemButtons = [];
+    private Button[] _settingsButtons = [];
 
     public event EventHandler? SettingsRequested;
 
@@ -63,6 +67,14 @@ public sealed partial class DockWindow : Window
         _magnificationTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(16) };
         _magnificationTimer.Tick += (_, _) => UpdateGlobalMouseMagnification();
 
+        // 放大动画定时器只在鼠标进入 Dock 区域时运行，离开后停止并复位
+        MouseEnter += (_, _) => _magnificationTimer.Start();
+        MouseLeave += (_, _) =>
+        {
+            _magnificationTimer.Stop();
+            ResetMagnification();
+        };
+
         _displaySettingsTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(350) };
         _displaySettingsTimer.Tick += DisplaySettingsTimer_Tick;
         SystemEvents.DisplaySettingsChanged += SystemEvents_DisplaySettingsChanged;
@@ -70,6 +82,7 @@ public sealed partial class DockWindow : Window
         {
             SystemEvents.DisplaySettingsChanged -= SystemEvents_DisplaySettingsChanged;
             _displaySettingsTimer.Stop();
+            _magnificationTimer.Stop();
         };
 
         SourceInitialized += (_, _) =>
@@ -77,7 +90,6 @@ public sealed partial class DockWindow : Window
             _hwnd = new WindowInteropHelper(this).Handle;
             ConfigureWindow();
             MoveToBottomCenter();
-            _magnificationTimer.Start();
         };
 
         LoadItems();
@@ -117,6 +129,7 @@ public sealed partial class DockWindow : Window
     public void ApplySettings()
     {
         _layoutIconSize = _configService.Current.Dock.IconSize;
+        _iconBitmapCache.Clear();
         ClearIconSizePreview();
         RenderItems();
         MoveToBottomCenter(_layoutIconSize);
@@ -185,16 +198,27 @@ public sealed partial class DockWindow : Window
         ItemsHost.Children.Clear();
         ToolsHost.Children.Clear();
 
+        var itemButtons = new List<Button>(DockItems.Count);
         foreach (var item in DockItems)
         {
-            ItemsHost.Children.Add(CreateDockButton(item));
+            var button = CreateDockButton(item);
+            ItemsHost.Children.Add(button);
+            itemButtons.Add(button);
         }
 
-        ToolsHost.Children.Add(CreateSettingsButton());
+        var settingsButton = CreateSettingsButton();
+        ToolsHost.Children.Add(settingsButton);
+        var toolButtons = new List<Button>(2) { settingsButton };
         if (_isEditMode)
         {
-            ToolsHost.Children.Add(CreateAddShortcutButton());
+            var addButton = CreateAddShortcutButton();
+            ToolsHost.Children.Add(addButton);
+            toolButtons.Add(addButton);
         }
+
+        _itemButtons = itemButtons.ToArray();
+        _settingsButtons = [settingsButton];
+        _dockButtons = [.. itemButtons, .. toolButtons];
 
         UpdateToolBalanceWidth(_configService.Current.Dock.IconSize);
     }
@@ -426,13 +450,13 @@ public sealed partial class DockWindow : Window
         };
     }
 
-    private static UIElement CreateIconContent(DockItem item, double iconSize, string fallbackText)
+    private UIElement CreateIconContent(DockItem item, double iconSize, string fallbackText)
     {
         if (!string.IsNullOrWhiteSpace(item.IconCachePath) && File.Exists(item.IconCachePath))
         {
             var image = new Image
             {
-                Source = LoadIconBitmap(item.IconCachePath),
+                Source = GetCachedIconBitmap(item.IconCachePath, iconSize),
                 Width = iconSize,
                 Height = iconSize,
                 Stretch = Stretch.Uniform,
@@ -542,14 +566,23 @@ public sealed partial class DockWindow : Window
         return circle;
     }
 
-    private static BitmapImage LoadIconBitmap(string iconCachePath)
+    private BitmapImage GetCachedIconBitmap(string iconCachePath, double iconSize)
     {
+        if (_iconBitmapCache.TryGetValue(iconCachePath, out var cached))
+        {
+            return cached;
+        }
+
+        // DecodePixelWidth 按显示尺寸 2x 兜底，避免对缓存 PNG 全尺寸解码
         var bitmap = new BitmapImage();
         bitmap.BeginInit();
         bitmap.CacheOption = BitmapCacheOption.OnLoad;
+        bitmap.DecodePixelWidth = Math.Max(32, (int)Math.Ceiling(iconSize * 2));
         bitmap.UriSource = new Uri(iconCachePath, UriKind.Absolute);
         bitmap.EndInit();
         bitmap.Freeze();
+
+        _iconBitmapCache[iconCachePath] = bitmap;
         return bitmap;
     }
 
@@ -567,6 +600,8 @@ public sealed partial class DockWindow : Window
             return;
         }
 
+        // 图标 PNG 可能在同路径上被重写，清掉位图缓存避免沿用旧解码结果
+        _iconBitmapCache.Clear();
         await _configService.SaveAsync();
         RenderItems();
     }
@@ -720,7 +755,7 @@ public sealed partial class DockWindow : Window
 
     private void UpdateGlobalMouseMagnification()
     {
-        if (_isInactive || _isEditMode || !IsVisible || !GetDockButtons().Any())
+        if (_isInactive || _isEditMode || !IsVisible || _dockButtons.Length == 0)
         {
             ResetMagnification();
             return;
@@ -745,7 +780,7 @@ public sealed partial class DockWindow : Window
             : ResetSettingsButtons();
         var shortcutInfluence = 1.0 - Math.Max(handoffProgress, settingsInfluence);
 
-        foreach (var button in ItemsHost.Children.OfType<Button>())
+        foreach (var button in _itemButtons)
         {
             var target = GetHoverScaleTarget(button);
             if (!target.IsVisible || target.ActualWidth <= 0)
@@ -768,7 +803,7 @@ public sealed partial class DockWindow : Window
     private double ApplySettingsButtonsProximity(Point mousePoint, double iconSize, double handoffProgress)
     {
         var strongestInfluence = 0.0;
-        foreach (var button in ToolsHost.Children.OfType<Button>().Where(IsSettingsButton))
+        foreach (var button in _settingsButtons)
         {
             var target = GetHoverScaleTarget(button);
             if (!target.IsVisible || target.ActualWidth <= 0)
@@ -786,7 +821,7 @@ public sealed partial class DockWindow : Window
 
     private double ResetSettingsButtons()
     {
-        foreach (var button in ToolsHost.Children.OfType<Button>().Where(IsSettingsButton))
+        foreach (var button in _settingsButtons)
         {
             ApplySettingsButtonVisual(button, SettingsIdleScale, SettingsIdleOpacity);
         }
@@ -845,7 +880,7 @@ public sealed partial class DockWindow : Window
 
     private void ResetMagnification()
     {
-        foreach (var child in GetDockButtons())
+        foreach (var child in _dockButtons)
         {
             child.RenderTransform = Transform.Identity;
             if (IsSettingsButton(child))
@@ -857,11 +892,6 @@ public sealed partial class DockWindow : Window
                 GetHoverScaleTarget(child).RenderTransform = Transform.Identity;
             }
         }
-    }
-
-    private IEnumerable<Button> GetDockButtons()
-    {
-        return ItemsHost.Children.OfType<Button>().Concat(ToolsHost.Children.OfType<Button>());
     }
 
     private static bool IsSettingsButton(Button button)

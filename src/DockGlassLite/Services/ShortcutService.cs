@@ -8,8 +8,8 @@ namespace DockGlassLite.Services;
 
 public sealed class ShortcutService
 {
-    private const int IconCacheSize = 256;
-    private const string IconCacheVersion = "v2";
+    private const int IconCacheSize = 96;
+    private const string IconCacheVersion = "v3";
     private static readonly TimeSpan LaunchSuppressionWindow = TimeSpan.FromSeconds(4);
     private readonly Dictionary<string, DateTimeOffset> _recentLaunches = new(StringComparer.OrdinalIgnoreCase);
     private readonly object _launchSync = new();
